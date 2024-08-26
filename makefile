@@ -1,14 +1,35 @@
-output: audio_to_vinyl.o filehandler.o filters.o
-	g++ audio_to_vinyl.o filehandler.o filters.o -o output
+# Compiler and flags
+CXX := g++
+CXXFLAGS := -Wall -Wextra -std=c++17
 
-audio_to_vinyl.o: audio_to_vinyl.cpp filehandler.h filters.h
-	g++ -c audio_to_vinyl.cpp
+# Directories
+SRC_DIR := src
+BUILD_DIR := build
 
-filehandler.o: filehandler.cpp filehandler.h
-	g++ -c filehandler.cpp
+# Output binary
+TARGET := $(BUILD_DIR)/output
 
-filters.o: filters.cpp filters.h
-	g++ -c filters.cpp
+# Source files and corresponding object files
+SRCS := $(wildcard $(SRC_DIR)/*.cpp)
+OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SRCS))
 
+# Rule to build the final output
+all: $(TARGET)
+
+# Linking the final executable
+$(TARGET): $(OBJS) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(OBJS) -o $@
+
+# Rule to compile each source file to an object file
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Create the build directory if it doesn't exist
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+# Clean up the build directory and the output binary
 clean:
-	rm *.o output
+	rm -rf $(BUILD_DIR)
+
+.PHONY: all clean
