@@ -21,7 +21,8 @@ struct WAVHeader {
 };
 
 // Function declarations (prototypes)
+void output_wav_data(WAVHeader& wav);
 WAVHeader read_wav_file(const char* file_path);
-void write_wav_file(WAVHeader& header);
+void write_wav_file(WAVHeader& header, const char* filename);
 
 #endif

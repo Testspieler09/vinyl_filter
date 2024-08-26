@@ -3,6 +3,23 @@
 #include <cstring>
 #include <fstream>
 
+void output_wav_data(WAVHeader& wav) {
+	std::cout << "RIFF Header: " << std::string(wav.riffHeader, 4) << std::endl;
+	std::cout << "File Size: " << wav.wavSize << std::endl;
+	std::cout << "WAVE Header: " << std::string(wav.waveHeader, 4) << std::endl;
+	std::cout << "FMT Header: " << std::string(wav.fmtHeader, 4) << std::endl;
+	std::cout << "FMT Chunk Size: " << wav.fmtChunkSize << std::endl;
+	std::cout << "Audio Format: " << wav.audioFormat << std::endl;
+	std::cout << "Number of Channels: " << wav.numChannels << std::endl;
+	std::cout << "Sample Rate: " << wav.sampleRate << std::endl;
+	std::cout << "Byte Rate: " << wav.byteRate << std::endl;
+	std::cout << "Block Align: " << wav.blockAlign << std::endl;
+	std::cout << "Bits Per Sample: " << wav.bitsPerSample << std::endl;
+	std::cout << "Data Header: " << std::string(wav.dataHeader, 4) << std::endl;
+	std::cout << "Data Size: " << wav.dataSize << std::endl;
+	return;
+}
+
 WAVHeader read_wav_file(const char* file) {
 	WAVHeader wav;
 
@@ -60,20 +77,6 @@ WAVHeader read_wav_file(const char* file) {
 		throw "File seams to be currupted\n";
 	}
 
-	// Output the read data
-	std::cout << "RIFF Header: " << std::string(wav.riffHeader, 4) << std::endl;
-	std::cout << "File Size: " << wav.wavSize << std::endl;
-	std::cout << "WAVE Header: " << std::string(wav.waveHeader, 4) << std::endl;
-	std::cout << "FMT Header: " << std::string(wav.fmtHeader, 4) << std::endl;
-	std::cout << "FMT Chunk Size: " << wav.fmtChunkSize << std::endl;
-	std::cout << "Audio Format: " << wav.audioFormat << std::endl;
-	std::cout << "Number of Channels: " << wav.numChannels << std::endl;
-	std::cout << "Sample Rate: " << wav.sampleRate << std::endl;
-	std::cout << "Byte Rate: " << wav.byteRate << std::endl;
-	std::cout << "Block Align: " << wav.blockAlign << std::endl;
-	std::cout << "Bits Per Sample: " << wav.bitsPerSample << std::endl;
-	std::cout << "Data Header: " << std::string(wav.dataHeader, 4) << std::endl;
-	std::cout << "Data Size: " << wav.dataSize << std::endl;
 	wav.data.resize(wav.dataSize);
 	wave_file.read(reinterpret_cast<char*>(wav.data.data()), wav.dataSize);
 	if (!wave_file) {
@@ -85,6 +88,37 @@ WAVHeader read_wav_file(const char* file) {
 	return wav;
 }
 
-void write_wav_file(WAVHeader& wav) {
+void write_wav_file(WAVHeader& wav, const char* filename) {
+	std::ofstream out_file(filename, std::ios::binary);
+	if (!out_file) {
+		throw "Error creating new file";
+	}
+
+	// Write the WAV file header
+	out_file.write(wav.riffHeader, 4);
+	out_file.write(reinterpret_cast<char*>(&wav.wavSize), sizeof(wav.wavSize));
+	out_file.write(wav.waveHeader, 4);
+	out_file.write(wav.fmtHeader, 4);
+	out_file.write(reinterpret_cast<char*>(&wav.fmtChunkSize), sizeof(wav.fmtChunkSize));
+	out_file.write(reinterpret_cast<char*>(&wav.audioFormat), sizeof(wav.audioFormat));
+	out_file.write(reinterpret_cast<char*>(&wav.numChannels), sizeof(wav.numChannels));
+	out_file.write(reinterpret_cast<char*>(&wav.sampleRate), sizeof(wav.sampleRate));
+	out_file.write(reinterpret_cast<char*>(&wav.byteRate), sizeof(wav.byteRate));
+	out_file.write(reinterpret_cast<char*>(&wav.blockAlign), sizeof(wav.blockAlign));
+	out_file.write(reinterpret_cast<char*>(&wav.bitsPerSample), sizeof(wav.bitsPerSample));
+	out_file.write(wav.dataHeader, 4);
+	out_file.write(reinterpret_cast<char*>(&wav.dataSize), sizeof(wav.dataSize));
+
+	// Write the audio data
+	out_file.write(reinterpret_cast<char*>(wav.data.data()), wav.dataSize);
+
+	if (!out_file) {
+		throw "Error writing to new file";
+	}
+
+	out_file.close();
+	if (!out_file) {
+		throw "Error closing new file";
+	}
 	return;
 }
