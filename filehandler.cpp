@@ -40,21 +40,14 @@ WAVHeader read_wav_file(const char* file) {
 	}
 
 	wave_file.read(reinterpret_cast<char*>(&wav.numChannels), sizeof(wav.numChannels));
-	if (wav.numChannels < 1 || wav.numChannels > 2) {
-		throw "Unsupported number of channels.\n";
-	}
 	wave_file.read(reinterpret_cast<char*>(&wav.sampleRate), sizeof(wav.sampleRate));
-	if (wav.sampleRate < 8000 || wav.sampleRate > 192000) {
-		throw "Unsupported sample rate.\n";
-	}
-
 	wave_file.read(reinterpret_cast<char*>(&wav.byteRate), sizeof(wav.byteRate));
 	wave_file.read(reinterpret_cast<char*>(&wav.blockAlign), sizeof(wav.blockAlign));
-
 	wave_file.read(reinterpret_cast<char*>(&wav.bitsPerSample), sizeof(wav.bitsPerSample));
-	if (wav.bitsPerSample != 8 && wav.bitsPerSample != 16 &&
-		wav.bitsPerSample != 24 && wav.bitsPerSample != 32) {
-		throw "Unsupported bits per sample.\n";
+	if (wav.byteRate != wav.sampleRate * wav.numChannels * wav.bitsPerSample / 8) {
+		throw "Byte rate seams to be wrong\n";
+	} else if (wav.blockAlign != wav.numChannels * wav.bitsPerSample / 8) {
+		throw "Block align seams to be wrong\n";
 	}
 
 	wave_file.read(wav.dataHeader, 4);
@@ -63,6 +56,9 @@ WAVHeader read_wav_file(const char* file) {
 	}
 
 	wave_file.read(reinterpret_cast<char*>(&wav.dataSize), sizeof(wav.dataSize));
+	if (wav.wavSize != 36 + wav.dataSize) {
+		throw "File seams to be currupted\n";
+	}
 
 	// Output the read data
 	std::cout << "RIFF Header: " << std::string(wav.riffHeader, 4) << std::endl;
@@ -78,6 +74,11 @@ WAVHeader read_wav_file(const char* file) {
 	std::cout << "Bits Per Sample: " << wav.bitsPerSample << std::endl;
 	std::cout << "Data Header: " << std::string(wav.dataHeader, 4) << std::endl;
 	std::cout << "Data Size: " << wav.dataSize << std::endl;
+	wav.data.resize(wav.dataSize);
+	wave_file.read(reinterpret_cast<char*>(wav.data.data()), wav.dataSize);
+	if (!wave_file) {
+		throw "Error reading the WAV file data.";
+	}
 
 	wave_file.close();
 

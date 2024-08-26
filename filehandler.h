@@ -1,6 +1,7 @@
 #ifndef FILEHANDLER_H
 #define FILEHANDLER_H
 #include <cstdint>
+#include <vector>
 
 struct WAVHeader {
 	char riffHeader[4];    // "RIFF"
@@ -16,6 +17,7 @@ struct WAVHeader {
 	uint16_t bitsPerSample;// Bits per sample
 	char dataHeader[4];    // "data"
 	uint32_t dataSize;     // Size of the data section
+	std::vector<int16_t> data;    // The actual data
 };
 
 // Function declarations (prototypes)
