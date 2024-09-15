@@ -1,6 +1,6 @@
 # run executable from source directory
 param()
-$OUTPUT_PATHS = "..\build\output.exe", "..\build\output.out", "..\build\output.app"
+$OUTPUT_PATHS = "../build/output.exe", "../build/output.out", "../build/output.app", "../build/output"
 
 foreach ($path in $OUTPUT_PATHS) {
 	if (Test-Path $path) {
