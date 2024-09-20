@@ -1,4 +1,4 @@
-#include "filehandler.h"
+#include "filehandler.hpp"
 #include <iostream>
 #include <cstring>
 #include <fstream>
@@ -20,7 +20,7 @@ void output_wav_data(WAVHeader& wav) {
 	return;
 }
 
-WAVHeader read_wav_file(const char* file) {
+WAVHeader read_wav_file(std::string file) {
 	WAVHeader wav;
 
 	// All checks for correct wav file
@@ -67,20 +67,20 @@ WAVHeader read_wav_file(const char* file) {
 		throw "Block align seams to be wrong\n";
 	}
 
-	wave_file.read(wav.dataHeader, 4);
-	if (std::strncmp(wav.dataHeader, "data", 4) != 0) {
-		throw "Missing 'data' subchunk.\n";
+	while (!wave_file.eof()) {
+		wave_file.read(wav.dataHeader, 4);
+		if (std::strncmp(wav.dataHeader, "data", 4) == 0) {
+			break;
+		}
+		wave_file.seekg(-3, std::ios_base::cur);
 	}
 
 	wave_file.read(reinterpret_cast<char*>(&wav.dataSize), sizeof(wav.dataSize));
-	if (wav.wavSize != 36 + wav.dataSize) {
-		throw "File seams to be currupted\n";
-	}
 
 	wav.data.resize(wav.dataSize);
 	wave_file.read(reinterpret_cast<char*>(wav.data.data()), wav.dataSize);
 	if (!wave_file) {
-		throw "Error reading the WAV file data.";
+		throw "Error reading the WAV file data.\n";
 	}
 
 	wave_file.close();
@@ -88,7 +88,7 @@ WAVHeader read_wav_file(const char* file) {
 	return wav;
 }
 
-void write_wav_file(WAVHeader& wav, const char* filename) {
+void write_wav_file(WAVHeader& wav, std::string filename) {
 	std::ofstream out_file(filename, std::ios::binary);
 	if (!out_file) {
 		throw "Error creating new file";

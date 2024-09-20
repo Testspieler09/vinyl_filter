@@ -1,3 +1,7 @@
+# MAC Folder thing
+.DS_STORE
+
+# The build folder
 build/
 
 # Prerequisites
