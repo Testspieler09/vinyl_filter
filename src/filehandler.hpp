@@ -22,7 +22,7 @@ struct WAVHeader {
 
 // Function declarations (prototypes)
 void output_wav_data(WAVHeader& wav);
-WAVHeader read_wav_file(const char* file_path);
-void write_wav_file(WAVHeader& header, const char* filename);
+WAVHeader read_wav_file(std::string file_path);
+void write_wav_file(WAVHeader& header, std::string filename);
 
 #endif

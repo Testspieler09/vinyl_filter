@@ -1,5 +1,7 @@
 #include <iostream>
 #include <argparse/argparse.hpp>
+#include "filters.hpp"
+#include "filehandler.hpp"
 
 int main(int argc, char* argv[]) {
 
