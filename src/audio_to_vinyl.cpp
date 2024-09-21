@@ -24,9 +24,11 @@ int main(int argc, char* argv[]) {
 	}
 
 	auto file = program.get<std::string>("Sourcepath");
-	std::cout << file << std::endl;
 	try {
 		WAVHeader file_data = read_wav_file(file);
+		output_wav_data(file_data);
+		limit_bit_depth(file_data, 6);
+		limit_sampling_rate(file_data, 5000);
 		output_wav_data(file_data);
 		write_wav_file(file_data, "vinyl.wav");
 	} catch (const char* error) {
