@@ -26,7 +26,7 @@ Enter the help message of output -h here
 ├── LICENSE
 ├── README.md
 ├── build                   // is created when you build with make
-├── include                 // external librarys
+├── include                 // external libraries
 │   └── argparse
 │       └── argparse.hpp
 ├── makefile                // the makefile for compiling the program more easily

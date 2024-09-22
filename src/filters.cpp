@@ -4,12 +4,8 @@
 #include <vector>
 
 double calc_audio_length(WAVHeader& audio) {
-	// Number of samples in the audio data
 	uint32_t number_of_samples = audio.dataSize / (audio.numChannels * (audio.bitsPerSample / 8));
-
-	// Duration in seconds
 	double duration = static_cast<double>(number_of_samples) / audio.sampleRate;
-
 	return duration;
 }
 
@@ -87,7 +83,6 @@ void limit_dynamic_range(WAVHeader& audio, std::vector<int16_t> dynamic_range) {
 		throw "The first value of dynamic_range must be less than or equal to the second value";
 	}
 
-	// Iterate through each sample and clamp its value within the dynamic range
 	for (auto& sample : audio.data) {
 		sample = std::clamp(sample, min_val, max_val);
 	}
@@ -114,13 +109,9 @@ void add_end_needle(WAVHeader& audio, int additional_param) {
 }
 
 void shorten_audio(WAVHeader& audio, double audio_length) {
-	// Calculate the number of samples for the desired audio length
 	uint32_t desired_samples = static_cast<uint32_t>(audio_length * audio.sampleRate);
-
-	// Calculate the number of samples per channel
 	uint32_t samples_per_channel = desired_samples * audio.numChannels;
 
-	// Ensure the desired_samples does not exceed the current number of samples
 	uint32_t total_current_samples = audio.dataSize / (audio.numChannels * (audio.bitsPerSample / 8));
 	if (desired_samples > total_current_samples) {
 		std::cerr << "Desired length exceeds the current length of the audio." << std::endl;
