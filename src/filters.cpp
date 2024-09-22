@@ -3,6 +3,16 @@
 #include <cstdint>
 #include <vector>
 
+double calc_audio_length(WAVHeader& audio) {
+	// Number of samples in the audio data
+	uint32_t number_of_samples = audio.dataSize / (audio.numChannels * (audio.bitsPerSample / 8));
+
+	// Duration in seconds
+	double duration = static_cast<double>(number_of_samples) / audio.sampleRate;
+
+	return duration;
+}
+
 void limit_bit_depth(WAVHeader& audio, uint16_t new_bit_depth=24) {
 	// 16; 24; 32Bit possible
 	if (new_bit_depth > audio.bitsPerSample) {
@@ -66,20 +76,64 @@ void limit_sampling_rate(WAVHeader& audio, uint32_t new_sample_rate=48000) {
 
 void limit_dynamic_range(WAVHeader& audio, std::vector<int16_t> dynamic_range) {
 	// Vinyl has a dynamic range of 55dB-65dB
+	if (dynamic_range.size() != 2) {
+		throw "dynamic_range should contain exactly 2 values: min and max";
+	}
+
+	int16_t min_val = dynamic_range[0];
+	int16_t max_val = dynamic_range[1];
+
+	if (min_val > max_val) {
+		throw "The first value of dynamic_range must be less than or equal to the second value";
+	}
+
+	// Iterate through each sample and clamp its value within the dynamic range
+	for (auto& sample : audio.data) {
+		sample = std::clamp(sample, min_val, max_val);
+	}
+
 	return;
 }
 
 void add_noise(WAVHeader& audio, int additional_param) {
 	// some logic here
+	std::cout << audio.byteRate << additional_param << std::endl;
 	return;
 }
 
 void add_start_needle(WAVHeader& audio, int additional_param) {
 	// some logic here
+	std::cout << audio.byteRate << additional_param << std::endl;
 	return;
 }
 
 void add_end_needle(WAVHeader& audio, int additional_param) {
 	// some logic here
+	std::cout << audio.byteRate << additional_param << std::endl;
+	return;
+}
+
+void shorten_audio(WAVHeader& audio, double audio_length) {
+	// Calculate the number of samples for the desired audio length
+	uint32_t desired_samples = static_cast<uint32_t>(audio_length * audio.sampleRate);
+
+	// Calculate the number of samples per channel
+	uint32_t samples_per_channel = desired_samples * audio.numChannels;
+
+	// Ensure the desired_samples does not exceed the current number of samples
+	uint32_t total_current_samples = audio.dataSize / (audio.numChannels * (audio.bitsPerSample / 8));
+	if (desired_samples > total_current_samples) {
+		std::cerr << "Desired length exceeds the current length of the audio." << std::endl;
+		return;
+	}
+
+	// Resize the data vector to hold the samples for the desired length
+	audio.data.resize(samples_per_channel);
+
+	// Update the dataSize in the header to reflect the new size of the audio data
+	audio.dataSize = samples_per_channel * (audio.bitsPerSample / 8);
+
+	// Update the wavSize in the header to reflect the new size of the entire file
+	audio.wavSize = audio.dataSize + sizeof(WAVHeader) - 8; // Subtract 8 for the 'RIFF' and size fields
 	return;
 }
