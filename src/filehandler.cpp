@@ -1,4 +1,5 @@
 #include "filehandler.hpp"
+#include <filesystem>
 #include <iostream>
 #include <cstring>
 #include <fstream>
@@ -121,4 +122,26 @@ void write_wav_file(WAVHeader& wav, std::string filename) {
 		throw "Error closing new file";
 	}
 	return;
+}
+
+std::string base_name(std::filesystem::path const & path) {
+	return path.filename();
+}
+
+std::string generate_file_name(std::filesystem::path path, std::filesystem::path filename) {
+	// check if path is a folder path that exists otherwise error
+	if (!std::filesystem::is_directory(path.parent_path())) {
+		throw "The given path is not a directory path or the directory doesn't exist.";
+	}
+
+	// check if filename is like *.wav otherwise error
+	if (filename.extension() != ".wav") {
+		throw "The file provided is no wav file.";
+	}
+
+	std::string generated_path = static_cast<std::string>(path)
+		+ "vinyl_"
+		+ static_cast<std::string>(filename);
+
+	return generated_path;
 }

@@ -1,5 +1,6 @@
 #ifndef FILEHANDLER_H
 #define FILEHANDLER_H
+#include <filesystem>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -43,5 +44,20 @@ WAVHeader read_wav_file(std::string file_path);
 * @param[in]	filename	The name of the new file.
 */
 void write_wav_file(WAVHeader& header, std::string filename);
+
+/**
+* A function that returns the file name of a given path with the given extension
+* @param[in]	path	The path to the audiofile.
+* @return		The file name with extension
+*/
+std::string base_name(std::filesystem::path const & path);
+
+/**
+* A function that generates the output path for a given file
+* @param[in]	path		The path to the output directory
+* @param[in]	filename	The old / original filename
+* @return			The generated path
+*/
+std::string generate_file_name(std::filesystem::path path, std::filesystem::path filename);
 
 #endif

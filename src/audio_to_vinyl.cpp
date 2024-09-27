@@ -12,6 +12,9 @@ int main(int argc, char* argv[]) {
 	program.add_argument("Sourcepath")
 		.help("The path to the file you want to convert.")
 		.required();
+	program.add_argument("Outputpath")
+		.help("The path to the output folder")
+		.required();
 	// other arguments
 
 	try {
@@ -24,6 +27,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	auto file = program.get<std::string>("Sourcepath");
+	auto output_path = program.get<std::string>("Outputpath");
 	try {
 		WAVHeader file_data = read_wav_file(file);
 		double track_length = calc_audio_length(file_data);
@@ -33,7 +37,8 @@ int main(int argc, char* argv[]) {
 		limit_dynamic_range(file_data, {-10000, 10000});
 		shorten_audio(file_data, track_length);
 		output_wav_data(file_data);
-		write_wav_file(file_data, "vinyl.wav");
+		std::string output = generate_file_name(output_path, base_name(file));
+		write_wav_file(file_data, output);
 	} catch (const char* error) {
 		std::cerr << "Error: " << error << std::endl;
 	}
