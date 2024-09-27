@@ -10,7 +10,7 @@
 
 1. Please compile the program with the `make` command in the root directory.
 2. The program should now be in the `build` directory with the name `output`
-3. If you want to rename and move it to the desired location to work with it.
+3. If you want rename and move the program to the desired location to work with it.
 
 
 ## Usage
