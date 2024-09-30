@@ -32,10 +32,13 @@ int main(int argc, char* argv[]) {
 		WAVHeader file_data = read_wav_file(file);
 		double track_length = calc_audio_length(file_data);
 		output_wav_data(file_data);
+		add_crackle_noise(file_data, 50);
+		add_pop_click_noise(file_data, 5);
 		limit_bit_depth(file_data, 16);
-		limit_sampling_rate(file_data, 10000);
-		limit_dynamic_range(file_data, {-10000, 10000});
+		limit_sampling_rate(file_data, 43000);
+		/*limit_dynamic_range(file_data, {-10000, 10000});*/
 		shorten_audio(file_data, track_length);
+		std::cout << std::endl;
 		output_wav_data(file_data);
 		std::string output = generate_file_name(output_path, base_name(file));
 		write_wav_file(file_data, output);
