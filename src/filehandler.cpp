@@ -139,8 +139,8 @@ std::string generate_file_name(std::filesystem::path path, std::filesystem::path
 		throw "The file provided is no wav file.";
 	}
 
-	std::string generated_path = static_cast<std::string>(path)
-		+ "vinyl_"
+	std::string generated_path = static_cast<std::string>(path.parent_path())
+		+ "/vinyl_"
 		+ static_cast<std::string>(filename);
 
 	return generated_path;
