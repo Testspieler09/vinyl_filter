@@ -33,11 +33,18 @@ void limit_sampling_rate(WAVHeader& audio, uint32_t sampling_rate=48000);
 void limit_dynamic_range(WAVHeader& audio, std::vector<int16_t> dynamic_range);
 
 /**
-* A function that adds noise based on the given parameters.
-* @param[out]	audio			The audio file read into the WAVHeader struct
-* @param[in]	additional_param	Something not defined yet
+* A function that adds crackle noises based on the given parameters.
+* @param[out]	audio		The audio file read into the WAVHeader struct
+* @param[in]	noise_level	The amount of noise generated (1 -> 0.1%)
 */
-void add_noise(WAVHeader& audio, int additional_param);
+void add_crackle_noise(WAVHeader& audio, int noise_level);
+
+/**
+* A function that adds pop noises based on the given parameters.
+* @param[out]	audio		The audio file read into the WAVHeader struct
+* @param[in]	noise_level	The amount of noise generated (1 -> 0.01%)
+*/
+void add_pop_click_noise(WAVHeader& audio, int noise_level);
 
 /**
 * A function that adds the sound of the needle dropping on the vinyl record based on the given parameters at the start of the file.

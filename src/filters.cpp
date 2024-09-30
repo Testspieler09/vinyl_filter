@@ -90,10 +90,36 @@ void limit_dynamic_range(WAVHeader& audio, std::vector<int16_t> dynamic_range) {
 	return;
 }
 
-void add_noise(WAVHeader& audio, int additional_param) {
-	// some logic here
-	std::cout << audio.byteRate << additional_param << std::endl;
-	return;
+int16_t generate_crackle_noise_value() {
+    return (rand() % 2000) - 1000;
+}
+
+int16_t generate_pop_click_noise_value() {
+    return (rand() % 2 ? -16384 : 16384);
+}
+
+void add_crackle_noise(WAVHeader& audio, int noise_level) {
+    srand(static_cast<unsigned int>(time(0))); // Seed for random number generation
+
+    for (int i = 0; i < static_cast<int>(audio.data.size()); i += audio.blockAlign) {
+        if (rand() % 1000 < noise_level) {
+            short* sample = reinterpret_cast<short*>(&audio.data[i]);
+            int16_t crackle_noise = generate_crackle_noise_value();
+            *sample = std::min(std::max(static_cast<int>(*sample) + crackle_noise, -32768), 32767);
+        }
+    }
+}
+
+void add_pop_click_noise(WAVHeader& audio, int noise_level) {
+    srand(static_cast<unsigned int>(time(0))); // Seed for random number generation
+
+    for (int i = 0; i < static_cast<int>(audio.data.size()); i += audio.blockAlign) {
+        if (rand() % 10000 < noise_level) {
+            short* sample = reinterpret_cast<short*>(&audio.data[i]);
+            int16_t pop_click_noise = generate_pop_click_noise_value();
+            *sample = std::min(std::max(static_cast<int>(*sample) + pop_click_noise, -16384), 16384);
+        }
+    }
 }
 
 void add_start_needle(WAVHeader& audio, int additional_param) {
