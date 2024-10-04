@@ -3,11 +3,8 @@
 #include <cstdint>
 #include <vector>
 
-double calc_audio_length(WAVHeader& audio) {
-	uint32_t number_of_samples = audio.dataSize / (audio.numChannels * (audio.bitsPerSample / 8));
-	double duration = static_cast<double>(number_of_samples) / audio.sampleRate;
-	return duration;
-}
+
+// Limit bit depth
 
 void limit_bit_depth(WAVHeader& audio, uint16_t new_bit_depth=24) {
 	// 16; 24; 32Bit possible
@@ -32,6 +29,9 @@ void limit_bit_depth(WAVHeader& audio, uint16_t new_bit_depth=24) {
 
 	return;
 }
+
+
+// Limit samping rate
 
 void limit_sampling_rate(WAVHeader& audio, uint32_t new_sample_rate=48000) {
 	// Around 48000Hz
@@ -70,18 +70,32 @@ void limit_sampling_rate(WAVHeader& audio, uint32_t new_sample_rate=48000) {
 	return;
 }
 
-void limit_dynamic_range(WAVHeader& audio, std::vector<int16_t> dynamic_range) {
+
+// Limit the dynamic range
+
+inline double dBToLinear(double dB) {
+	// 20*dB because doubling the amplitude is 6dB (10^1/20 = 2).
+	return std::pow(10.0, dB / 20.0);
+}
+
+void limit_dynamic_range(WAVHeader& audio, std::vector<double> dynamic_range={55.0, 65.0}) {
 	// Vinyl has a dynamic range of 55dB-65dB
 	if (dynamic_range.size() != 2) {
 		throw "dynamic_range should contain exactly 2 values: min and max";
 	}
 
-	int16_t min_val = dynamic_range[0];
-	int16_t max_val = dynamic_range[1];
+	double min_dB = dynamic_range[0];
+	double max_dB = dynamic_range[1];
 
-	if (min_val > max_val) {
+	if (min_dB > max_dB) {
 		throw "The first value of dynamic_range must be less than or equal to the second value";
 	}
+
+	double max_sample_value = std::pow(2, audio.bitsPerSample - 1) - 1;
+	double min_sample_value = -std::pow(2, audio.bitsPerSample - 1);
+
+	int16_t min_val = static_cast<int16_t>(min_sample_value * dBToLinear(min_dB));
+	int16_t max_val = static_cast<int16_t>(max_sample_value * dBToLinear(max_dB));
 
 	for (auto& sample : audio.data) {
 		sample = std::clamp(sample, min_val, max_val);
@@ -90,37 +104,47 @@ void limit_dynamic_range(WAVHeader& audio, std::vector<int16_t> dynamic_range) {
 	return;
 }
 
-int16_t generate_crackle_noise_value() {
+
+// Adding Noise to the struct
+
+inline int16_t generate_crackle_noise_value() {
     return (rand() % 2000) - 1000;
 }
 
-int16_t generate_pop_click_noise_value() {
+inline int16_t generate_pop_click_noise_value() {
     return (rand() % 2 ? -16384 : 16384);
 }
 
-void add_crackle_noise(WAVHeader& audio, int noise_level) {
-    srand(static_cast<unsigned int>(time(0))); // Seed for random number generation
+void add_crackle_noise(WAVHeader& audio, int noise_level=0) {
+	srand(static_cast<unsigned int>(time(0)));
 
-    for (int i = 0; i < static_cast<int>(audio.data.size()); i += audio.blockAlign) {
-        if (rand() % 1000 < noise_level) {
-            short* sample = reinterpret_cast<short*>(&audio.data[i]);
-            int16_t crackle_noise = generate_crackle_noise_value();
-            *sample = std::min(std::max(static_cast<int>(*sample) + crackle_noise, -32768), 32767);
-        }
-    }
+	noise_level = (noise_level < 0) ? 0 : (noise_level > 1000) ? 1000 : noise_level;
+
+	for (int i = 0; i < static_cast<int>(audio.data.size()); i += audio.blockAlign) {
+		if (rand() % 1000 < noise_level) {
+			short* sample = reinterpret_cast<short*>(&audio.data[i]);
+			int16_t crackle_noise = generate_crackle_noise_value();
+			*sample = std::min(std::max(static_cast<int>(*sample) + crackle_noise, -32768), 32767);
+		}
+	}
 }
 
-void add_pop_click_noise(WAVHeader& audio, int noise_level) {
-    srand(static_cast<unsigned int>(time(0))); // Seed for random number generation
+void add_pop_click_noise(WAVHeader& audio, int noise_level=0) {
+	srand(static_cast<unsigned int>(time(0)));
 
-    for (int i = 0; i < static_cast<int>(audio.data.size()); i += audio.blockAlign) {
-        if (rand() % 10000 < noise_level) {
-            short* sample = reinterpret_cast<short*>(&audio.data[i]);
-            int16_t pop_click_noise = generate_pop_click_noise_value();
-            *sample = std::min(std::max(static_cast<int>(*sample) + pop_click_noise, -16384), 16384);
-        }
-    }
+	noise_level = (noise_level < 0) ? 0 : (noise_level > 1000) ? 1000 : noise_level;
+
+	for (int i = 0; i < static_cast<int>(audio.data.size()); i += audio.blockAlign) {
+		if (rand() % 10000 < noise_level) {
+			short* sample = reinterpret_cast<short*>(&audio.data[i]);
+			int16_t pop_click_noise = generate_pop_click_noise_value();
+			*sample = std::min(std::max(static_cast<int>(*sample) + pop_click_noise, -16384), 16384);
+		}
+	}
 }
+
+
+// Add needle sounds to the struct
 
 void add_start_needle(WAVHeader& audio, int additional_param) {
 	// some logic here
@@ -133,6 +157,16 @@ void add_end_needle(WAVHeader& audio, int additional_param) {
 	std::cout << audio.byteRate << additional_param << std::endl;
 	return;
 }
+
+
+// Calculate and shorten audio length
+
+double calc_audio_length(const WAVHeader& audio) {
+	uint32_t number_of_samples = audio.dataSize / (audio.numChannels * (audio.bitsPerSample / 8));
+	double duration = static_cast<double>(number_of_samples) / audio.sampleRate;
+	return duration;
+}
+
 
 void shorten_audio(WAVHeader& audio, double audio_length) {
 	uint32_t desired_samples = static_cast<uint32_t>(audio_length * audio.sampleRate);
