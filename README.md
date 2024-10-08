@@ -3,7 +3,7 @@
  Add a vinyl sound to audio files. Currently the program only supports WAV files.
 
 > [!IMPORTANT]
-> The script will delete any metadata of the wav file(s) provided.
+> The script will delete any data between the `BitsPerSample` part of the WAV and the `data sub-chunk`!
 
 
 ## Installation
