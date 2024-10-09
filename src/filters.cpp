@@ -1,6 +1,7 @@
 #include "filehandler.hpp"
 #include <cstdint>
 #include <iostream>
+#include <random>
 #include <vector>
 
 // Limit bit depth
@@ -135,6 +136,7 @@ void add_crackle_noise(WAVHeader &audio, int noise_level = 0) {
           std::max(static_cast<int>(*sample) + crackle_noise, -32768), 32767);
     }
   }
+  return;
 }
 
 void add_pop_click_noise(WAVHeader &audio, int noise_level = 0) {
@@ -157,19 +159,58 @@ void add_pop_click_noise(WAVHeader &audio, int noise_level = 0) {
           std::max(static_cast<int>(*sample) + pop_click_noise, -16384), 16384);
     }
   }
+  return;
 }
 
 // Add needle sounds to the struct
 
-void add_start_needle(WAVHeader &audio, int additional_param) {
-  // some logic here
-  std::cout << audio.byteRate << additional_param << std::endl;
+std::vector<int16_t> generateNeedleSound(int sampleRate, int numChannels,
+                                         float durationSeconds) {
+  std::vector<int16_t> needleDropSound;
+  int totalSamples = static_cast<int>(sampleRate * durationSeconds);
+
+  std::default_random_engine generator;
+  std::uniform_int_distribution<int16_t> distribution(-32767, 32767);
+
+  // Generate noise samples.
+  for (int i = 0; i < totalSamples; ++i) {
+    for (int ch = 0; ch < numChannels; ++ch) {
+      int16_t sample = distribution(generator);
+      needleDropSound.push_back(sample);
+    }
+  }
+  return needleDropSound;
+}
+
+void add_start_needle(WAVHeader &audio, float needleDropDuration = 2.f) {
+  // Generate the needle drop sound.
+  auto needleDropSound = generateNeedleSound(
+      audio.sampleRate, audio.numChannels, needleDropDuration);
+
+  // Create a new buffer to hold the combined audio data.
+  std::vector<int16_t> newAudioData;
+  newAudioData.reserve(needleDropSound.size() + audio.data.size());
+
+  // Append needle drop sound.
+  newAudioData.insert(newAudioData.end(), needleDropSound.begin(),
+                      needleDropSound.end());
+
+  // Append original audio data.
+  newAudioData.insert(newAudioData.end(), audio.data.begin(), audio.data.end());
+
+  // Update the audio data with the new combined data.
+  audio.data = std::move(newAudioData);
   return;
 }
 
-void add_end_needle(WAVHeader &audio, int additional_param) {
-  // some logic here
-  std::cout << audio.byteRate << additional_param << std::endl;
+void add_end_needle(WAVHeader &audio, float needleLiftDuration = 2.f) {
+  // Generate the needle lift sound.
+  auto needleLiftSound = generateNeedleSound(
+      audio.sampleRate, audio.numChannels, needleLiftDuration);
+
+  // Append needle lift sound to the end of the audio data.
+  audio.data.insert(audio.data.end(), needleLiftSound.begin(),
+                    needleLiftSound.end());
   return;
 }
 
@@ -182,18 +223,10 @@ double calc_audio_length(const WAVHeader &audio) {
   return duration;
 }
 
-void shorten_audio(WAVHeader &audio, double audio_length) {
+void resize_audio(WAVHeader &audio, double audio_length) {
   uint32_t desired_samples =
       static_cast<uint32_t>(audio_length * audio.sampleRate);
   uint32_t samples_per_channel = desired_samples * audio.numChannels;
-
-  uint32_t total_current_samples =
-      audio.dataSize / (audio.numChannels * (audio.bitsPerSample / 8));
-  if (desired_samples > total_current_samples) {
-    std::cerr << "Desired length exceeds the current length of the audio."
-              << std::endl;
-    return;
-  }
 
   // Resize the data vector to hold the samples for the desired length
   audio.data.resize(samples_per_channel);

@@ -13,7 +13,8 @@ struct Settings {
   uint16_t bitDepth = 24;                          // in 1Bit
   int cracklingNoise_lvl = 0;                      // in 0.1%
   int general_noise_lvl = 0;                       // in 0.1%
-  // needle settings missing rn
+  float NeedleDropDuration;                   // in 1s
+  float NeedleLiftDuration;                     // in 1s
 };
 
 void run_procedure(std::string file, std::string output_path,
@@ -38,12 +39,16 @@ void run_procedure(std::string file, std::string output_path,
       calc_audio_length(file_data); // for the shortening later
 
   // Apply filters
+  // think of order of operations as the cracklenoise should not be limited in
+  // bit depth or change functions accordingly
+  add_start_needle(file_data, settings.NeedleDropDuration);
+  add_end_needle(file_data, settings.NeedleLiftDuration);
   add_crackle_noise(file_data, settings.cracklingNoise_lvl);
   add_pop_click_noise(file_data, settings.general_noise_lvl);
   limit_bit_depth(file_data, settings.bitDepth);
   limit_sampling_rate(file_data, settings.sampleRate);
   limit_dynamic_range(file_data, settings.dynamicRange);
-  shorten_audio(file_data, track_length);
+  resize_audio(file_data, track_length);
 
   // Write the data to a file
   write_wav_file(file_data, output);
@@ -91,6 +96,16 @@ int main(int argc, char *argv[]) {
       .nargs(1)
       .default_value(settings.general_noise_lvl)
       .scan<'i', int>();
+  program.add_argument("-nDD", "--needleDropDuration")
+      .help("The duration of the needle sound in 1s (at start of file)")
+      .nargs(1)
+      .default_value(settings.NeedleDropDuration)
+      .scan<'i', float>();
+  program.add_argument("-nLD", "--nLiftDuration")
+      .help("The duration of the needle sound in 1s (at end of file)")
+      .nargs(1)
+      .default_value(settings.NeedleLiftDuration)
+      .scan<'i', float>();
 
   // Check if arguments where passed correctly
   try {
@@ -114,6 +129,8 @@ int main(int argc, char *argv[]) {
   settings.bitDepth = program.get<uint16_t>("--bitDepth");
   settings.cracklingNoise_lvl = program.get<int>("--cracklingNoiseLvl");
   settings.general_noise_lvl = program.get<int>("--generalNoiseLvl");
+  settings.NeedleDropDuration = program.get<float>("--needleDropDuration");
+  settings.NeedleLiftDuration = program.get<float>("--needleLiftDuration");
 
   // Run main logic
   try {
