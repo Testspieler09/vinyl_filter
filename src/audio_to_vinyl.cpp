@@ -13,8 +13,8 @@ struct Settings {
   uint16_t bitDepth = 24;                          // in 1Bit
   int cracklingNoise_lvl = 0;                      // in 0.1%
   int general_noise_lvl = 0;                       // in 0.1%
-  float NeedleDropDuration;                   // in 1s
-  float NeedleLiftDuration;                     // in 1s
+  float NeedleDropDuration;                        // in 1s
+  float NeedleLiftDuration;                        // in 1s
 };
 
 void run_procedure(std::string file, std::string output_path,
@@ -100,12 +100,12 @@ int main(int argc, char *argv[]) {
       .help("The duration of the needle sound in 1s (at start of file)")
       .nargs(1)
       .default_value(settings.NeedleDropDuration)
-      .scan<'i', float>();
-  program.add_argument("-nLD", "--nLiftDuration")
+      .scan<'g', float>();
+  program.add_argument("-nLD", "--needleLiftDuration")
       .help("The duration of the needle sound in 1s (at end of file)")
       .nargs(1)
       .default_value(settings.NeedleLiftDuration)
-      .scan<'i', float>();
+      .scan<'g', float>();
 
   // Check if arguments where passed correctly
   try {
