@@ -2,20 +2,10 @@
 #include "filters.hpp"
 #include <argparse/argparse.hpp>
 #include <cstdint>
-#include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <filesystem>
 #include <iostream>
-
-struct Settings {
-  uint32_t sampleRate = 48000;                     // in 1Hz
-  std::vector<double> dynamicRange = {55.0, 65.0}; // in 1dB
-  uint16_t bitDepth = 24;                          // in 1Bit
-  int cracklingNoise_lvl = 0;                      // in 0.1%
-  int general_noise_lvl = 0;                       // in 0.1%
-  float NeedleDropDuration;                        // in 1s
-  float NeedleLiftDuration;                        // in 1s
-};
 
 void run_procedure(std::string file, std::string output_path,
                    const Settings &settings) {
@@ -39,16 +29,18 @@ void run_procedure(std::string file, std::string output_path,
       calc_audio_length(file_data); // for the shortening later
 
   // Apply filters
-  // think of order of operations as the cracklenoise should not be limited in
-  // bit depth or change functions accordingly
-  add_start_needle(file_data, settings.NeedleDropDuration);
-  add_end_needle(file_data, settings.NeedleLiftDuration);
-  add_crackle_noise(file_data, settings.cracklingNoise_lvl);
+  add_crackle_noise(file_data, settings.crackling_noise_lvl);
   add_pop_click_noise(file_data, settings.general_noise_lvl);
-  limit_bit_depth(file_data, settings.bitDepth);
-  limit_sampling_rate(file_data, settings.sampleRate);
-  limit_dynamic_range(file_data, settings.dynamicRange);
+  limit_bit_depth(file_data, settings.bit_depth);
+  adjust_sampling_rate(file_data, settings.sample_rate);
   resize_audio(file_data, track_length);
+
+  /*
+   * important to apply the needle sounds after limiting the original audio as
+   * the realworld sounds should not be limited
+   */
+  add_start_needle(file_data, settings.needle_drop_duration);
+  add_end_needle(file_data, settings.needle_lift_duration);
 
   // Write the data to a file
   write_wav_file(file_data, output);
@@ -74,22 +66,17 @@ int main(int argc, char *argv[]) {
   program.add_argument("-s", "--samples")
       .help("The number of samples you want")
       .nargs(1)
-      .default_value(settings.sampleRate)
+      .default_value(settings.sample_rate)
       .scan<'i', uint32_t>();
-  program.add_argument("-dR", "--dynamicRange")
-      .help("The wanted dynamic range as MIN MAX")
-      .nargs(2)
-      .default_value(settings.dynamicRange)
-      .scan<'g', double>();
   program.add_argument("-bD", "--bitDepth")
       .help("The bit depth you want")
       .nargs(1)
-      .default_value(settings.bitDepth)
+      .default_value(settings.bit_depth)
       .scan<'i', uint16_t>();
   program.add_argument("-cNL", "--cracklingNoiseLvl")
       .help("The amount of crackling noise you want in 0.1%")
       .nargs(1)
-      .default_value(settings.cracklingNoise_lvl)
+      .default_value(settings.crackling_noise_lvl)
       .scan<'i', int>();
   program.add_argument("-gNL", "--generalNoiseLvl")
       .help("The amount of white noise you want in 0.1%")
@@ -99,12 +86,12 @@ int main(int argc, char *argv[]) {
   program.add_argument("-nDD", "--needleDropDuration")
       .help("The duration of the needle sound in 1s (at start of file)")
       .nargs(1)
-      .default_value(settings.NeedleDropDuration)
+      .default_value(settings.needle_drop_duration)
       .scan<'g', float>();
   program.add_argument("-nLD", "--needleLiftDuration")
       .help("The duration of the needle sound in 1s (at end of file)")
       .nargs(1)
-      .default_value(settings.NeedleLiftDuration)
+      .default_value(settings.needle_lift_duration)
       .scan<'g', float>();
 
   // Check if arguments where passed correctly
@@ -121,16 +108,15 @@ int main(int argc, char *argv[]) {
   auto output_path = program.get<std::string>("Outputpath");
 
   /*
-   * Fill settings with optional arguments if given else it uses the
-   * default values of the Settings struct
+   * Fill settings with optional arguments if given
+   *  else it uses the default values of the Settings struct
    */
-  settings.sampleRate = program.get<uint32_t>("--samples");
-  settings.dynamicRange = program.get<std::vector<double>>("--dynamicRange");
-  settings.bitDepth = program.get<uint16_t>("--bitDepth");
-  settings.cracklingNoise_lvl = program.get<int>("--cracklingNoiseLvl");
-  settings.general_noise_lvl = program.get<int>("--generalNoiseLvl");
-  settings.NeedleDropDuration = program.get<float>("--needleDropDuration");
-  settings.NeedleLiftDuration = program.get<float>("--needleLiftDuration");
+  settings.sample_rate = program.get<uint32_t>("--samples");
+  settings.bit_depth = program.get<uint16_t>("--bitDepth");
+  settings.crackling_noise_lvl = program.get<uint16_t>("--cracklingNoiseLvl");
+  settings.general_noise_lvl = program.get<uint16_t>("--generalNoiseLvl");
+  settings.needle_drop_duration = program.get<float>("--needleDropDuration");
+  settings.needle_lift_duration = program.get<float>("--needleLiftDuration");
 
   // Run main logic
   try {

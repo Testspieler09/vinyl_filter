@@ -2,7 +2,18 @@
 #define FILTERS_H
 #include "filehandler.hpp"
 #include <cstdint>
-#include <vector>
+
+/**
+ * The default settings for the vinyl filter.
+ */
+struct Settings {
+  uint32_t sample_rate = 48000;       // in 1Hz
+  uint16_t bit_depth = 24;            // in 1Bit
+  uint16_t crackling_noise_lvl = 100; // in 0.01%
+  uint16_t general_noise_lvl = 5;     // in 0.001%
+  float needle_drop_duration = 0.8f;  // in 1s
+  float needle_lift_duration = 1.f;   // in 1s
+};
 
 /**
  * A function that calculates the length of a audiofile in seconds.
@@ -18,26 +29,16 @@ double calc_audio_length(const WAVHeader &audio);
  * @param[out] audio The audio file read into the WAVHeader struct
  * @param[in] bit_depth The new bit depth
  */
-void limit_bit_depth(WAVHeader &audio, uint16_t bit_depth = 24);
+void limit_bit_depth(WAVHeader &audio, const uint16_t &bit_depth);
 
 /**
- * A function that limits the sampling rate of the given audio file to a given
+ * A function that adjusts the sampling rate of the given audio file to a given
  * rate.
  *
  * @param[out] audio The audio file read into the WAVHeader struct
  * @param[in] sampling_rate The new sampling rate
  */
-void limit_sampling_rate(WAVHeader &audio, uint32_t sampling_rate = 48000);
-
-/**
- * A function that limits the dynamic range of the given audio file to a given
- * range.
- *
- * @param[out] audio The audio file read into the WAVHeader struct
- * @param[in] dynamic_range The new range as a std::vector<int16_t>
- */
-void limit_dynamic_range(WAVHeader &audio,
-                         std::vector<double> dynamic_range = {55.0, 65.0});
+void adjust_sampling_rate(WAVHeader &audio, const uint32_t &sampling_rate);
 
 /**
  * A function that adds crackle noises based on the given parameters.
@@ -45,7 +46,7 @@ void limit_dynamic_range(WAVHeader &audio,
  * @param[out] audio The audio file read into the WAVHeader struct
  * @param[in] noise_level The amount of noise generated (1 -> 0.1%)
  */
-void add_crackle_noise(WAVHeader &audio, int noise_level = 0);
+void add_crackle_noise(WAVHeader &audio, const uint16_t &noise_level);
 
 /**
  * A function that adds pop noises based on the given parameters.
@@ -53,27 +54,27 @@ void add_crackle_noise(WAVHeader &audio, int noise_level = 0);
  * @param[out] audio The audio file read into the WAVHeader struct
  * @param[in] noise_level The amount of noise generated (1 -> 0.01%)
  */
-void add_pop_click_noise(WAVHeader &audio, int noise_level = 0);
+void add_pop_click_noise(WAVHeader &audio, const uint32_t &noise_level);
 
 /**
  * A function that adds the sound of the needle dropping on the vinyl record
  * based on the given parameters at the start of the file.
  *
  * @param[out] audio The audio file read into the WAVHeader struct
- * @param[in] needleDropDuration The duration of the generated sound effect in
+ * @param[in] needle_drop_duration The duration of the generated sound effect in
  * 1s
  */
-void add_start_needle(WAVHeader &audio, float needleDropDuration = 2.f);
+void add_start_needle(WAVHeader &audio, const float &needle_drop_duration);
 
 /**
  * A function that adds the sound of the needle dropping on the vinyl record
  * based on the given parameters at the end of the file.
  *
  * @param[out] audio The audio file read into the WAVHeader struct
- * @param[in] needleLiftDuration The duration of the generated sound effect in
+ * @param[in] needle_lift_duration The duration of the generated sound effect in
  * 1s
  */
-void add_end_needle(WAVHeader &audio, float needleLiftDuration = 2.f);
+void add_end_needle(WAVHeader &audio, const float &needle_lift_duration);
 
 /**
  * A function that shortens the audiofile to a given length in seconds.
@@ -81,6 +82,6 @@ void add_end_needle(WAVHeader &audio, float needleLiftDuration = 2.f);
  * @param[out] audio The audio file read into the WAVHeader struct
  * @param[in] audio_length The length of the audiofile in seconds
  */
-void resize_audio(WAVHeader &audio, double audio_length);
+void resize_audio(WAVHeader &audio, const double &audio_length);
 
 #endif

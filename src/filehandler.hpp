@@ -9,19 +9,19 @@
  * A struct that can hold the data of a wav-file
  */
 struct WAVHeader {
-  char riffHeader[4];        // "RIFF"
-  uint32_t wavSize;          // Size of the WAV file
-  char waveHeader[4];        // "WAVE"
-  char fmtHeader[4];         // "fmt "
-  uint32_t fmtChunkSize;     // Size of the fmt chunk
-  uint16_t audioFormat;      // Audio format (1 = PCM)
-  uint16_t numChannels;      // Number of channels
-  uint32_t sampleRate;       // Sample rate
-  uint32_t byteRate;         // Byte rate
-  uint16_t blockAlign;       // Block align
-  uint16_t bitsPerSample;    // Bits per sample
-  char dataHeader[4];        // "data"
-  uint32_t dataSize;         // Size of the data section
+  char riff_header[4];       // "RIFF"
+  uint32_t wav_size;         // Size of the WAV file
+  char wave_header[4];       // "WAVE"
+  char fmt_header[4];        // "fmt "
+  uint32_t fmt_chunk_size;   // Size of the fmt chunk
+  uint16_t audio_format;     // Audio format (1 = PCM)
+  uint16_t num_channels;     // Number of channels
+  uint32_t sample_rate;      // Sample rate
+  uint32_t byte_rate;        // Byte rate
+  uint16_t block_align;      // Block align
+  uint16_t bits_per_sample;  // Bits per sample
+  char data_header[4];       // "data"
+  uint32_t data_size;        // Size of the data section
   std::vector<int16_t> data; // The actual data
 };
 

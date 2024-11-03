@@ -1,20 +1,21 @@
 #include "filehandler.hpp"
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <random>
 #include <vector>
 
-// Limit bit depth
+// Limit bit depth (same as dynamic limiting the dynamic range)
 
-void limit_bit_depth(WAVHeader &audio, uint16_t new_bit_depth = 24) {
+void limit_bit_depth(WAVHeader &audio, const uint16_t &new_bit_depth) {
   // 16; 24; 32Bit possible
-  if (new_bit_depth > audio.bitsPerSample) {
-    std::cerr << "New bit depth is greater than current bit depth."
-              << std::endl;
+  // resize instead of limit????
+  if (new_bit_depth > audio.bits_per_sample) {
+    std::cerr << "New bit depth is greater than current bit depth.\n";
     return;
   }
 
-  uint16_t original_bit_depth = audio.bitsPerSample;
+  uint16_t original_bit_depth = audio.bits_per_sample;
   int bit_depth_difference = original_bit_depth - new_bit_depth;
   int max_value = (1 << (new_bit_depth - 1)) - 1;
   int min_value = -(1 << (new_bit_depth - 1));
@@ -24,25 +25,20 @@ void limit_bit_depth(WAVHeader &audio, uint16_t new_bit_depth = 24) {
     sample = sample << bit_depth_difference;
   }
 
-  audio.bitsPerSample = new_bit_depth;
-  audio.byteRate = audio.sampleRate * audio.numChannels * new_bit_depth / 8;
-  audio.blockAlign = audio.numChannels * new_bit_depth / 8;
-
   return;
 }
 
-// Limit samping rate
+// Adjust samping rate
 
-void limit_sampling_rate(WAVHeader &audio, uint32_t new_sample_rate = 48000) {
+void adjust_sampling_rate(WAVHeader &audio, const uint32_t &new_sample_rate) {
   // Around 48000Hz
-  if (new_sample_rate == audio.sampleRate) {
-    std::cerr << "The new sample rate is the same as the current sample rate"
-              << std::endl;
+  if (new_sample_rate == audio.sample_rate) {
+    std::cerr << "The new sample rate is the same as the current sample rate\n";
     return;
   }
 
-  uint32_t old_sample_rate = audio.sampleRate;
-  size_t old_num_samples = audio.data.size();
+  uint32_t old_sample_rate = audio.sample_rate;
+  size_t old_num_samples = audio.data_size;
   size_t new_num_samples = static_cast<size_t>(
       (static_cast<double>(new_sample_rate) / old_sample_rate) *
       old_num_samples);
@@ -63,179 +59,196 @@ void limit_sampling_rate(WAVHeader &audio, uint32_t new_sample_rate = 48000) {
 
   audio.data = std::move(new_data);
 
-  audio.sampleRate = new_sample_rate;
-  audio.byteRate =
-      new_sample_rate * audio.numChannels * audio.bitsPerSample / 8;
-  audio.blockAlign = audio.numChannels * audio.bitsPerSample / 8;
-  audio.dataSize = audio.data.size() * sizeof(int16_t);
-  audio.wavSize = audio.dataSize + sizeof(WAVHeader) - 8;
-
-  return;
-}
-
-// Limit the dynamic range
-
-inline double dBToLinear(double dB) {
-  // 20*dB because doubling the amplitude is 6dB (10^1/20 = 2).
-  return std::pow(10.0, dB / 20.0);
-}
-
-void limit_dynamic_range(WAVHeader &audio,
-                         std::vector<double> dynamic_range = {55.0, 65.0}) {
-  // Vinyl has a dynamic range of 55dB-65dB
-  if (dynamic_range.size() != 2) {
-    throw "dynamic_range should contain exactly 2 values: min and max";
-  }
-
-  double min_dB = dynamic_range[0];
-  double max_dB = dynamic_range[1];
-
-  if (min_dB > max_dB) {
-    throw "The first value of dynamic_range must be less than or equal to the "
-          "second value";
-  }
-
-  double max_sample_value = std::pow(2, audio.bitsPerSample - 1) - 1;
-  double min_sample_value = -std::pow(2, audio.bitsPerSample - 1);
-
-  int16_t min_val = static_cast<int16_t>(min_sample_value * dBToLinear(min_dB));
-  int16_t max_val = static_cast<int16_t>(max_sample_value * dBToLinear(max_dB));
-
-  for (auto &sample : audio.data) {
-    sample = std::clamp(sample, min_val, max_val);
-  }
+  audio.sample_rate = new_sample_rate;
+  audio.byte_rate =
+      new_sample_rate * audio.num_channels * audio.bits_per_sample / 8;
+  audio.block_align = audio.num_channels * audio.bits_per_sample / 8;
+  audio.data_size = audio.data.size() * sizeof(int16_t);
+  audio.wav_size = audio.data_size + sizeof(WAVHeader) - 8;
 
   return;
 }
 
 // Adding Noise to the struct
 
-inline int16_t generate_crackle_noise_value() { return (rand() % 2000) - 1000; }
+inline int16_t generate_crackle_noise_value() {
+  return ((rand() % 2000) - 1000) * 2;
+}
 
 inline int16_t generate_pop_click_noise_value() {
   return (rand() % 2 ? -16384 : 16384);
 }
 
-void add_crackle_noise(WAVHeader &audio, int noise_level = 0) {
+void add_crackle_noise(WAVHeader &audio, const uint16_t &noise_level) {
   srand(static_cast<unsigned int>(time(0)));
 
-  noise_level = (noise_level < 0)      ? 0
-                : (noise_level > 1000) ? 1000
-                                       : noise_level;
+  if (noise_level > 10000) {
+    throw "noise_level can not be greater than 10_000 aka 100%\n";
+  }
 
   if (noise_level == 0) {
     return;
   }
 
-  for (int i = 0; i < static_cast<int>(audio.data.size());
-       i += audio.blockAlign) {
-    if (rand() % 1000 < noise_level) {
+  for (int i = 0; i < static_cast<int>(audio.data_size);
+       i += audio.block_align) {
+    if (rand() % 10000 < noise_level) {
       short *sample = reinterpret_cast<short *>(&audio.data[i]);
       int16_t crackle_noise = generate_crackle_noise_value();
       *sample = std::min(
           std::max(static_cast<int>(*sample) + crackle_noise, -32768), 32767);
     }
   }
+
   return;
 }
 
-void add_pop_click_noise(WAVHeader &audio, int noise_level = 0) {
+void add_pop_click_noise(WAVHeader &audio, const uint32_t &noise_level) {
   srand(static_cast<unsigned int>(time(0)));
 
-  noise_level = (noise_level < 0)      ? 0
-                : (noise_level > 1000) ? 1000
-                                       : noise_level;
+  if (noise_level > 100000l) {
+    throw "noise_level can not be greater than 10_000 aka 100%\n";
+  }
 
   if (noise_level == 0) {
     return;
   }
 
-  for (int i = 0; i < static_cast<int>(audio.data.size());
-       i += audio.blockAlign) {
-    if (rand() % 10000 < noise_level) {
+  for (int i = 0; i < static_cast<int>(audio.data_size);
+       i += audio.block_align) {
+    if (rand() % 100000l < noise_level) {
       short *sample = reinterpret_cast<short *>(&audio.data[i]);
       int16_t pop_click_noise = generate_pop_click_noise_value();
       *sample = std::min(
           std::max(static_cast<int>(*sample) + pop_click_noise, -16384), 16384);
     }
   }
+
   return;
 }
 
 // Add needle sounds to the struct
 
-std::vector<int16_t> generateNeedleSound(int sampleRate, int numChannels,
-                                         float durationSeconds) {
-  std::vector<int16_t> needleDropSound;
-  int totalSamples = static_cast<int>(sampleRate * durationSeconds);
+std::vector<int16_t> generate_needle_sound(const int &sample_rate,
+                                           const int &num_channels,
+                                           const float &duration_seconds) {
+  std::vector<int16_t> sound;
+
+  if (duration_seconds <= 0) {
+    return sound;
+  }
+
+  size_t numSamples = static_cast<size_t>(duration_seconds * sample_rate);
+  size_t impactSamples = static_cast<size_t>(0.01 * sample_rate); // 10ms impact
+  size_t frictionSamples = numSamples - impactSamples;
 
   std::default_random_engine generator;
-  std::uniform_int_distribution<int16_t> distribution(-32767, 32767);
+  std::uniform_int_distribution<int16_t> noiseDistribution(-25000, -23000);
 
-  // Generate noise samples.
-  for (int i = 0; i < totalSamples; ++i) {
-    for (int ch = 0; ch < numChannels; ++ch) {
-      int16_t sample = distribution(generator);
-      needleDropSound.push_back(sample);
+  // Generate initial impact sound (short burst of loud noise)
+  for (size_t i = 0; i < impactSamples; ++i) {
+    int16_t sampleValue = noiseDistribution(generator);
+    for (uint16_t channel = 0; channel < num_channels; ++channel) {
+      sound.push_back(sampleValue);
     }
   }
-  return needleDropSound;
+
+  // Generate friction noise
+  for (size_t i = 0; i < frictionSamples; ++i) {
+    double decay = exp(-static_cast<double>(i) /
+                       (frictionSamples / 2.0 * duration_seconds));
+    int16_t sampleValue =
+        static_cast<int16_t>(noiseDistribution(generator) * decay);
+    for (uint16_t channel = 0; channel < num_channels; ++channel) {
+      sound.push_back(sampleValue);
+    }
+  }
+
+  return sound;
 }
 
-void add_start_needle(WAVHeader &audio, float needleDropDuration = 2.f) {
+void add_start_needle(WAVHeader &audio, const float &needle_drop_duration) {
+
+  if (needle_drop_duration < 0) {
+    throw "The needle_drop_duration can not be less than 0\n";
+  }
+
   // Generate the needle drop sound.
-  auto needleDropSound = generateNeedleSound(
-      audio.sampleRate, audio.numChannels, needleDropDuration);
+  std::vector<int16_t> needle_drop_sound = generate_needle_sound(
+      audio.sample_rate, audio.num_channels, needle_drop_duration);
 
   // Create a new buffer to hold the combined audio data.
   std::vector<int16_t> newAudioData;
-  newAudioData.reserve(needleDropSound.size() + audio.data.size());
+  newAudioData.reserve(needle_drop_sound.size() + audio.data_size);
 
   // Append needle drop sound.
-  newAudioData.insert(newAudioData.end(), needleDropSound.begin(),
-                      needleDropSound.end());
+  newAudioData.insert(newAudioData.end(), needle_drop_sound.begin(),
+                      needle_drop_sound.end());
 
   // Append original audio data.
   newAudioData.insert(newAudioData.end(), audio.data.begin(), audio.data.end());
 
   // Update the audio data with the new combined data.
   audio.data = std::move(newAudioData);
+
+  if (audio.bits_per_sample < 16) {
+    audio.bits_per_sample = 16;
+  }
+
+  audio.data_size = audio.data.size() * sizeof(int16_t);
+  audio.wav_size = audio.data_size + sizeof(WAVHeader) - 8;
+
   return;
 }
 
-void add_end_needle(WAVHeader &audio, float needleLiftDuration = 2.f) {
+void add_end_needle(WAVHeader &audio, const float &needle_lift_duration) {
+
+  if (needle_lift_duration < 0) {
+    throw "The needle_lift_duration can not be less than 0\n";
+  }
+
   // Generate the needle lift sound.
-  auto needleLiftSound = generateNeedleSound(
-      audio.sampleRate, audio.numChannels, needleLiftDuration);
+  auto needle_lift_sound = generate_needle_sound(
+      audio.sample_rate, audio.num_channels, needle_lift_duration);
 
   // Append needle lift sound to the end of the audio data.
-  audio.data.insert(audio.data.end(), needleLiftSound.begin(),
-                    needleLiftSound.end());
+  audio.data.insert(audio.data.end(), needle_lift_sound.begin(),
+                    needle_lift_sound.end());
+
+  if (audio.bits_per_sample < 16) {
+    audio.bits_per_sample = 16;
+  }
+
+  audio.data_size = audio.data.size() * sizeof(int16_t);
+  audio.wav_size = audio.data_size + sizeof(WAVHeader) - 8;
+
   return;
 }
 
-// Calculate and shorten audio length
+// Calculate and resize audio length
 
 double calc_audio_length(const WAVHeader &audio) {
   uint32_t number_of_samples =
-      audio.dataSize / (audio.numChannels * (audio.bitsPerSample / 8));
-  double duration = static_cast<double>(number_of_samples) / audio.sampleRate;
+      audio.data_size / (audio.num_channels * (audio.bits_per_sample / 8));
+  double duration = static_cast<double>(number_of_samples) / audio.sample_rate;
   return duration;
 }
 
-void resize_audio(WAVHeader &audio, double audio_length) {
+void resize_audio(WAVHeader &audio, const double &audio_length) {
   uint32_t desired_samples =
-      static_cast<uint32_t>(audio_length * audio.sampleRate);
-  uint32_t samples_per_channel = desired_samples * audio.numChannels;
+      static_cast<uint32_t>(audio_length * audio.sample_rate);
+  uint32_t samples_per_channel = desired_samples * audio.num_channels;
 
   // Resize the data vector to hold the samples for the desired length
   audio.data.resize(samples_per_channel);
 
-  // Update the dataSize in the header to reflect the new size of the audio data
-  audio.dataSize = samples_per_channel * (audio.bitsPerSample / 8);
+  /* Update the data_size in the header to reflect the new size of the audio
+   data */
+  audio.data_size = samples_per_channel * (audio.bits_per_sample / 8);
 
-  // Update the wavSize in the header to reflect the new size of the entire file
-  audio.wavSize = audio.dataSize + sizeof(WAVHeader) -
-                  8; // Subtract 8 for the 'RIFF' and size fields
+  /* Update the wav_size in the header to reflect the new size of the entire
+   file */
+  audio.wav_size = audio.data_size + sizeof(WAVHeader) -
+                   8; // Subtract 8 for the 'RIFF' and size fields
   return;
 }
