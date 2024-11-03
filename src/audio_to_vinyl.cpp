@@ -64,22 +64,22 @@ int main(int argc, char *argv[]) {
 
   // Optional arguments
   program.add_argument("-s", "--samples")
-      .help("The number of samples you want")
+      .help("The number of samples you want in 1Hz")
       .nargs(1)
       .default_value(settings.sample_rate)
       .scan<'i', uint32_t>();
   program.add_argument("-bD", "--bitDepth")
-      .help("The bit depth you want")
+      .help("The bit depth you want in 1 Bit")
       .nargs(1)
       .default_value(settings.bit_depth)
       .scan<'i', uint16_t>();
   program.add_argument("-cNL", "--cracklingNoiseLvl")
-      .help("The amount of crackling noise you want in 0.1%")
+      .help("The amount of crackling noise you want in 0.01%")
       .nargs(1)
       .default_value(settings.crackling_noise_lvl)
       .scan<'i', int>();
   program.add_argument("-gNL", "--generalNoiseLvl")
-      .help("The amount of white noise you want in 0.1%")
+      .help("The amount of white noise you want in 0.001%")
       .nargs(1)
       .default_value(settings.general_noise_lvl)
       .scan<'i', int>();
