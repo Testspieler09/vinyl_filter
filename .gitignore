@@ -1,3 +1,13 @@
+# MAC Folder thing
+.DS_STORE
+
+# The clangd lsp settings and other text files
+compile_flags.txt
+*.txt
+
+# The build folder
+build/
+
 # Prerequisites
 *.d
 
