@@ -19,7 +19,7 @@
 
 ## Usage
 
-> [!TIPP]
+> [!TIP]
 > The program already has some great default settings which you can change with the flags.
 
 To see the help message run the program with the `-h` flag.
