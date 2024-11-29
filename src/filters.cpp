@@ -9,7 +9,6 @@
 
 void limit_bit_depth(WAVHeader &audio, const uint16_t &new_bit_depth) {
   // 16; 24; 32Bit possible
-  // resize instead of limit????
   if (new_bit_depth > audio.bits_per_sample) {
     std::cerr << "New bit depth is greater than current bit depth.\n";
     return;
